@@ -23,6 +23,6 @@ public interface OrganizerRepository extends JpaRepository<Organizer, Long> {
                    "JOIN events e ON o.id = e.organizer_id " +
                    "GROUP BY o.id " +
                    "ORDER BY COUNT(e.id) DESC " +
-                   "LIMIT :limit", nativeQuery = true)
+                   "LIMIT 10", nativeQuery = true)
     List<Organizer> findTopOrganizers(@Param("limit") int limit);
 }

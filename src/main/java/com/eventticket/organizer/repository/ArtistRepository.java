@@ -25,6 +25,6 @@ public interface ArtistRepository extends JpaRepository<Artist, Long> {
                    "JOIN event_artists ea ON a.id = ea.artist_id " +
                    "GROUP BY a.id " +
                    "ORDER BY COUNT(ea.event_id) DESC " +
-                   "LIMIT :limit", nativeQuery = true)
+                   "LIMIT 10", nativeQuery = true)
     List<Artist> findTopArtists(@Param("limit") int limit);
 }
