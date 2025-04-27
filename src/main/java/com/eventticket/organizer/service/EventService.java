@@ -5,6 +5,7 @@ import com.eventticket.organizer.dto.EventDTO;
 import com.eventticket.organizer.dto.EventUpdateRequest;
 import com.eventticket.organizer.dto.TicketTypeDTO;
 import com.eventticket.organizer.dto.response.EventResponse;
+import com.eventticket.organizer.dto.response.EventStatusResponse;
 import com.eventticket.organizer.exception.BusinessException;
 import com.eventticket.organizer.exception.ResourceNotFoundException;
 import com.eventticket.organizer.model.*;
@@ -50,6 +51,48 @@ public class EventService {
         return eventMapper.toEventResponse(event);
     }
 
+    public EventStatusResponse getEventStatus(Long id) {
+        Event event = findEventById(id);
+
+        EventStatusResponse response = new EventStatusResponse();
+        response.setEventId(event.getId());
+        response.setEventName(event.getName());
+        response.setCurrentStatus(event.getStatus().toString().toLowerCase());
+        response.setLastUpdated(event.getUpdatedAt());
+
+        // Determine if the event is bookable based on its status
+        boolean isBookable = event.getStatus() == Event.EventStatus.UPCOMING;
+        response.setIsBookable(isBookable);
+
+        // Set a status message based on the event status
+        String statusMessage;
+        switch (event.getStatus()) {
+            case DRAFT:
+                statusMessage = "This event is not yet published";
+                break;
+            case UPCOMING:
+                statusMessage = "Tickets are available for booking";
+                break;
+            case ONGOING:
+                statusMessage = "This event is currently in progress";
+                break;
+            case COMPLETED:
+                statusMessage = "This event has ended";
+                break;
+            case POSTPONED:
+                statusMessage = "This event has been postponed";
+                break;
+            case CANCELLED:
+                statusMessage = "This event has been cancelled";
+                break;
+            default:
+                statusMessage = "Unknown status";
+        }
+        response.setStatusMessage(statusMessage);
+
+        return response;
+    }
+
     public List<EventDTO> getEventsByStatus(Event.EventStatus status) {
         List<Event> events = eventRepository.findByStatus(status);
         return events.stream()
@@ -74,18 +117,18 @@ public class EventService {
     @Transactional
     public EventDTO createEvent(EventCreateRequest request) {
         validateEventCreateRequest(request);
-        
+
         Venue venue = venueRepository.findById(request.getVenueId())
                 .orElseThrow(() -> new ResourceNotFoundException("Venue not found with id: " + request.getVenueId()));
-        
+
         Organizer organizer = organizerRepository.findById(request.getOrganizerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Organizer not found with id: " + request.getOrganizerId()));
-        
+
         Set<Artist> artists = request.getArtistIds().stream()
                 .map(id -> artistRepository.findById(id)
                         .orElseThrow(() -> new ResourceNotFoundException("Artist not found with id: " + id)))
                 .collect(Collectors.toSet());
-        
+
         Event event = new Event();
         event.setName(request.getName());
         event.setDescription(request.getDescription());
@@ -98,7 +141,7 @@ public class EventService {
         event.setArtists(artists);
         event.setStatus(Event.EventStatus.DRAFT);
         event.setImageUrl(request.getImageUrl());
-        
+
         for (TicketTypeDTO ticketTypeDTO : request.getTicketTypes()) {
             TicketType ticketType = new TicketType();
             ticketType.setType(ticketTypeDTO.getType());
@@ -108,10 +151,10 @@ public class EventService {
             ticketType.setSaleStartTime(ticketTypeDTO.getSaleStartTime());
             ticketType.setSaleEndTime(ticketTypeDTO.getSaleEndTime());
             ticketType.setBenefits(ticketTypeDTO.getBenefits());
-            
+
             event.addTicketType(ticketType);
         }
-        
+
         Event savedEvent = eventRepository.save(event);
         return eventMapper.toDto(savedEvent);
     }
@@ -119,22 +162,22 @@ public class EventService {
     @Transactional
     public EventDTO updateEvent(Long id, EventUpdateRequest request) {
         Event event = findEventById(id);
-        
+
         if (request.getName() != null) {
             event.setName(request.getName());
         }
-        
+
         if (request.getDescription() != null) {
             event.setDescription(request.getDescription());
         }
-        
+
         if (request.getVenueId() != null) {
             Venue venue = venueRepository.findById(request.getVenueId())
                     .orElseThrow(() -> new ResourceNotFoundException("Venue not found with id: " + request.getVenueId()));
-            
+
             String oldVenue = event.getVenue().getName();
             event.setVenue(venue);
-            
+
             EventStatusUpdate statusUpdate = new EventStatusUpdate();
             statusUpdate.setField("venue");
             statusUpdate.setOldValue(oldVenue);
@@ -143,11 +186,11 @@ public class EventService {
             statusUpdate.setNotificationStatus(EventStatusUpdate.NotificationStatus.PENDING);
             event.addStatusUpdate(statusUpdate);
         }
-        
+
         if (request.getDate() != null) {
             String oldDate = event.getDate().toString();
             event.setDate(request.getDate());
-            
+
             EventStatusUpdate statusUpdate = new EventStatusUpdate();
             statusUpdate.setField("date");
             statusUpdate.setOldValue(oldDate);
@@ -156,11 +199,11 @@ public class EventService {
             statusUpdate.setNotificationStatus(EventStatusUpdate.NotificationStatus.PENDING);
             event.addStatusUpdate(statusUpdate);
         }
-        
+
         if (request.getTime() != null) {
             String oldTime = event.getTime();
             event.setTime(request.getTime());
-            
+
             EventStatusUpdate statusUpdate = new EventStatusUpdate();
             statusUpdate.setField("time");
             statusUpdate.setOldValue(oldTime);
@@ -169,33 +212,33 @@ public class EventService {
             statusUpdate.setNotificationStatus(EventStatusUpdate.NotificationStatus.PENDING);
             event.addStatusUpdate(statusUpdate);
         }
-        
+
         if (request.getDuration() != null) {
             event.setDuration(request.getDuration());
         }
-        
+
         if (request.getCategory() != null) {
             event.setCategory(request.getCategory());
         }
-        
+
         if (request.getArtistIds() != null && !request.getArtistIds().isEmpty()) {
             Set<Artist> artists = request.getArtistIds().stream()
                     .map(artistId -> artistRepository.findById(artistId)
                             .orElseThrow(() -> new ResourceNotFoundException("Artist not found with id: " + artistId)))
                     .collect(Collectors.toSet());
-            
+
             event.getArtists().clear();
             event.setArtists(artists);
         }
-        
+
         if (request.getImageUrl() != null) {
             event.setImageUrl(request.getImageUrl());
         }
-        
+
         if (request.getTicketTypes() != null && !request.getTicketTypes().isEmpty()) {
             updateTicketTypes(event, request.getTicketTypes());
         }
-        
+
         Event updatedEvent = eventRepository.save(event);
         return eventMapper.toDto(updatedEvent);
     }
@@ -203,17 +246,17 @@ public class EventService {
     @Transactional
     public EventDTO publishEvent(Long id) {
         Event event = findEventById(id);
-        
+
         if (event.getStatus() != Event.EventStatus.DRAFT) {
             throw new BusinessException("Only draft events can be published");
         }
-        
+
         if (event.getTicketTypes().isEmpty()) {
             throw new BusinessException("Event must have at least one ticket type before publishing");
         }
-        
+
         event.setStatus(Event.EventStatus.UPCOMING);
-        
+
         EventStatusUpdate statusUpdate = new EventStatusUpdate();
         statusUpdate.setField("status");
         statusUpdate.setOldValue(Event.EventStatus.DRAFT.toString());
@@ -221,7 +264,7 @@ public class EventService {
         statusUpdate.setReason("Event published");
         statusUpdate.setNotificationStatus(EventStatusUpdate.NotificationStatus.PENDING);
         event.addStatusUpdate(statusUpdate);
-        
+
         Event updatedEvent = eventRepository.save(event);
         return eventMapper.toDto(updatedEvent);
     }
@@ -229,11 +272,11 @@ public class EventService {
     @Transactional
     public void deleteEvent(Long id) {
         Event event = findEventById(id);
-        
+
         if (event.getStatus() != Event.EventStatus.DRAFT) {
             throw new BusinessException("Only draft events can be deleted");
         }
-        
+
         eventRepository.delete(event);
     }
 
@@ -246,7 +289,7 @@ public class EventService {
         if (request.getTicketTypes() == null || request.getTicketTypes().isEmpty()) {
             throw new BusinessException("At least one ticket type is required");
         }
-        
+
         if (request.getArtistIds() == null || request.getArtistIds().isEmpty()) {
             throw new BusinessException("At least one artist is required");
         }
@@ -254,10 +297,10 @@ public class EventService {
 
     private void updateTicketTypes(Event event, List<TicketTypeDTO> ticketTypeDTOs) {
         // Remove ticket types not in the request
-        event.getTicketTypes().removeIf(existingType -> 
+        event.getTicketTypes().removeIf(existingType ->
                 ticketTypeDTOs.stream()
                         .noneMatch(dto -> dto.getId() != null && dto.getId().equals(existingType.getId())));
-        
+
         // Update existing ticket types and add new ones
         for (TicketTypeDTO dto : ticketTypeDTOs) {
             if (dto.getId() != null) {
@@ -284,7 +327,7 @@ public class EventService {
                 newType.setSaleStartTime(dto.getSaleStartTime());
                 newType.setSaleEndTime(dto.getSaleEndTime());
                 newType.setBenefits(dto.getBenefits());
-                
+
                 event.addTicketType(newType);
             }
         }
