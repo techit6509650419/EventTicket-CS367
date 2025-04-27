@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.time.LocalDateTime;
@@ -29,7 +30,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Not Found",
                 exception.getMessage(),
                 request.getDescription(false));
-        
+
         return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
     }
 
@@ -42,7 +43,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Business Rule Violation",
                 exception.getMessage(),
                 request.getDescription(false));
-        
+
         return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
     }
 
@@ -55,7 +56,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Service Communication Error",
                 exception.getMessage(),
                 request.getDescription(false));
-        
+
         return new ResponseEntity<>(errorDetails, HttpStatus.SERVICE_UNAVAILABLE);
     }
 
@@ -68,39 +69,59 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Access Denied",
                 exception.getMessage(),
                 request.getDescription(false));
-        
+
         return new ResponseEntity<>(errorDetails, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorDetails> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException exception, WebRequest request) {
+        String paramName = exception.getName();
+        String requiredType = exception.getRequiredType() != null ? exception.getRequiredType().getSimpleName() : "unknown";
+        String providedValue = exception.getValue() != null ? exception.getValue().toString() : "null";
+
+        String message = String.format("Parameter '%s' should be a valid '%s' but value '%s' was provided",
+                paramName, requiredType, providedValue);
+
+        ErrorDetails errorDetails = new ErrorDetails(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Type Mismatch",
+                message,
+                request.getDescription(false));
+
+        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorDetails> handleGlobalException(
             Exception exception, WebRequest request) {
         log.error("Unhandled exception occurred", exception);
-        
+
         ErrorDetails errorDetails = new ErrorDetails(
                 LocalDateTime.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal Server Error",
                 exception.getMessage(),
                 request.getDescription(false));
-        
+
         return new ResponseEntity<>(errorDetails, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
-            MethodArgumentNotValidException ex, 
-            HttpHeaders headers, 
-            HttpStatus status, 
+            MethodArgumentNotValidException ex,
+            HttpHeaders headers,
+            HttpStatus status,
             WebRequest request) {
-        
+
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        
+
         ValidationErrorDetails errorDetails = new ValidationErrorDetails(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
@@ -108,7 +129,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Validation failed for request parameters",
                 request.getDescription(false),
                 errors);
-        
+
         return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
     }
 

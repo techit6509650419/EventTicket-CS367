@@ -1,13 +1,13 @@
 package com.eventticket.organizer.config;
 
-import com.eventticket.organizer.security.JwtAuthenticationFilter;
-import com.eventticket.organizer.security.JwtTokenProvider;
+import com.eventticket.organizer.security.AutoAuthenticationFilter;
+import com.eventticket.organizer.security.AutoGrantAuthenticationProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,15 +18,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtTokenProvider tokenProvider;
+    private final AutoGrantAuthenticationProvider autoGrantAuthenticationProvider;
 
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(tokenProvider);
+    public AutoAuthenticationFilter autoAuthenticationFilter() {
+        return new AutoAuthenticationFilter();
     }
 
     @Bean
@@ -46,14 +45,13 @@ public class SecurityConfig {
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeRequests()
-                .antMatchers("/api/auth/**").permitAll()
-                .antMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .antMatchers("/api/events/public/**").permitAll()
-                .antMatchers("/api/search/events/**").permitAll()
-                .anyRequest().authenticated();
+                .anyRequest().permitAll()
+            .and()
+            .authenticationProvider(autoGrantAuthenticationProvider);
 
-        http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
-        
+        // Add our custom filter that automatically authenticates all requests
+        http.addFilterBefore(autoAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 }

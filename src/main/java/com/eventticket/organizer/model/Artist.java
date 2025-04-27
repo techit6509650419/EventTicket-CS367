@@ -1,8 +1,11 @@
 package com.eventticket.organizer.model;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -14,7 +17,10 @@ import java.util.Set;
 
 @Entity
 @Table(name = "artists")
-@Data
+@Getter
+@Setter
+@ToString(exclude = "events")
+@EqualsAndHashCode(exclude = "events")
 @NoArgsConstructor
 @AllArgsConstructor
 public class Artist {
