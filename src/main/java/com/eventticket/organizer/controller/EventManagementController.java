@@ -5,6 +5,7 @@ import com.eventticket.organizer.dto.response.BookingResponse; // ใช้ resp
 import com.eventticket.organizer.dto.EventDTO;
 import com.eventticket.organizer.dto.response.StatusUpdateResponse;
 import com.eventticket.organizer.dto.response.TicketStatisticsResponse;
+import com.eventticket.organizer.dto.response.ChatbotResponse;
 import com.eventticket.organizer.exception.ResourceNotFoundException;
 import com.eventticket.organizer.exception.ServiceCommunicationException;
 import com.eventticket.organizer.service.EventManagementService;

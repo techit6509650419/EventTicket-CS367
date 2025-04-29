@@ -2,6 +2,8 @@ package com.eventticket.organizer.controller;
 
 import com.eventticket.organizer.dto.SearchFilterRequest;
 import com.eventticket.organizer.dto.response.SearchResponse;
+import com.eventticket.organizer.dto.ChatbotFaqRequest;
+import com.eventticket.organizer.dto.response.ChatbotResponse;
 import com.eventticket.organizer.model.Event;
 import com.eventticket.organizer.service.EventSearchService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -81,5 +83,19 @@ public class EventSearchController {
         
         List<Map<String, Object>> faqs = eventSearchService.getEventFaqs(eventId);
         return ResponseEntity.ok(faqs);
+    }
+
+    @PostMapping("/faq")
+    @Operation(summary = "Get answers to frequently asked questions")
+    public ResponseEntity<ChatbotResponse> getFaqAnswer(@RequestBody Map<String, Object> requestBody) {
+        // Extract values from the request body
+        String query = (String) requestBody.get("query");
+        Long userId = requestBody.get("userId") != null ? Long.valueOf(requestBody.get("userId").toString()) : null;
+        String sessionId = (String) requestBody.get("sessionId");
+        String eventId = (String) requestBody.get("eventId");
+
+        // Call the service layer
+        ChatbotResponse response = eventSearchService.getFaqAnswer(query, userId, sessionId, eventId);
+        return ResponseEntity.ok(response);
     }
 }

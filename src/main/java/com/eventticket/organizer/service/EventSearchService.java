@@ -2,6 +2,7 @@ package com.eventticket.organizer.service;
 
 import com.eventticket.organizer.dto.SearchFilterRequest;
 import com.eventticket.organizer.dto.response.SearchResponse;
+import com.eventticket.organizer.dto.response.ChatbotResponse;
 import com.eventticket.organizer.model.Artist;
 import com.eventticket.organizer.model.Event;
 import com.eventticket.organizer.model.TicketType;
@@ -9,6 +10,7 @@ import com.eventticket.organizer.repository.ArtistRepository;
 import com.eventticket.organizer.repository.EventRepository;
 import com.eventticket.organizer.repository.VenueRepository;
 import com.eventticket.organizer.service.client.TicketServiceClient;
+import com.eventticket.organizer.dto.ChatbotFaqRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -212,6 +214,18 @@ public class EventSearchService {
 
     public List<Map<String, Object>> getEventFaqs(Long eventId) {
         return ticketServiceClient.getFrequentlyAskedQuestions(eventId);
+    }
+
+    public ChatbotResponse getFaqAnswer(ChatbotFaqRequest request) {
+        return ticketServiceClient.getFaqAnswer(request);
+    }
+
+    public ChatbotResponse getFaqAnswer(String query, Long userId, String sessionId, String eventId) {
+        // Create a ChatbotFaqRequest object manually
+        ChatbotFaqRequest request = new ChatbotFaqRequest(query, userId, sessionId, eventId);
+
+        // Call the TicketServiceClient
+        return ticketServiceClient.getFaqAnswer(request);
     }
 
     private SearchResponse.EventSummary mapEventToSummary(Event event) {
