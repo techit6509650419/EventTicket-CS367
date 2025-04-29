@@ -5,6 +5,7 @@ import com.eventticket.organizer.dto.response.StatusUpdateResponse;
 import com.eventticket.organizer.dto.response.TicketStatisticsResponse;
 import com.eventticket.organizer.exception.BusinessException;
 import com.eventticket.organizer.exception.ResourceNotFoundException;
+import com.eventticket.organizer.exception.ServiceCommunicationException;
 import com.eventticket.organizer.model.Event;
 import com.eventticket.organizer.model.EventStatusUpdate;
 import com.eventticket.organizer.repository.EventRepository;
@@ -12,9 +13,13 @@ import com.eventticket.organizer.service.client.TicketServiceClient;
 import com.eventticket.organizer.util.EventMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,6 +36,10 @@ public class EventManagementService {
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
     private final TicketServiceClient ticketServiceClient;
+    private final RestTemplate restTemplate;
+
+    @Value("${ticket.service.url}")
+    private String ticketServiceUrl;
 
     @Transactional
     public EventDTO postponeEvent(Long id, LocalDate newDate, String newTime, String reason) {
@@ -232,8 +241,32 @@ public class EventManagementService {
         eventRepository.saveAll(events);
     }
 
+    public TicketStatisticsResponse getTicketStatistics(Long eventId) {
+        try {
+            String url = ticketServiceUrl + "/api/tickets/event/" + eventId + "/statistics";
+            HttpHeaders headers = createHeaders();
+            
+            ResponseEntity<TicketStatisticsResponse> response = restTemplate.exchange(
+                    url, 
+                    HttpMethod.GET, 
+                    new HttpEntity<>(headers), 
+                    TicketStatisticsResponse.class);
+            
+            return response.getBody();
+        } catch (RestClientException e) {
+            log.error("Error retrieving ticket statistics for eventId: {}", eventId, e);
+            throw new ServiceCommunicationException("Could not retrieve ticket statistics: " + e.getMessage());
+        }
+    }
+
     private Event findEventById(Long id) {
         return eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+    }
+
+    private HttpHeaders createHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return headers;
     }
 }
