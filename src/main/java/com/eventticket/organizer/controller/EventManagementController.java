@@ -106,28 +106,25 @@ public class EventManagementController {
         return ResponseEntity.ok(statistics);
     }
 
-    @PostMapping("/{id}/reserve-organizer-tickets")
+    @PostMapping("/reserve-organizer-tickets")
     @Operation(summary = "Reserve tickets for organizer team", security = @SecurityRequirement(name = "JWT"))
     @PreAuthorize("hasRole('ADMIN') or hasRole('ORGANIZER')")
     public ResponseEntity<BookingResponse> reserveOrganizerTicketsAndGetResponse(
-            @PathVariable Long id,
             @RequestBody BookingRequest bookingRequest) {
 
-        // เรียก TicketServiceClient เพื่อจองตั๋ว
+        // ส่ง eventId เป็น String
         BookingResponse bookingResponse = ticketServiceClient.reserveOrganizerTicketsAndGetResponse(
-                id.toString(),
+                bookingRequest.getEventId(),
                 bookingRequest.getUserId(),
                 bookingRequest.getTicketType(),
                 bookingRequest.getQuantity(),
-                bookingRequest.getNote() != null ? bookingRequest.getNote() : "Reserved for organizer team"
+                bookingRequest.getNote()
         );
 
-        // ตรวจสอบ response ที่ได้รับ
         if (bookingResponse == null || bookingResponse.getBookingId() == null) {
             throw new ServiceCommunicationException("Failed to reserve tickets. No booking ID returned.");
         }
 
-        // ส่ง response กลับไปยัง client
         return ResponseEntity.ok(bookingResponse);
     }
 

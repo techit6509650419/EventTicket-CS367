@@ -82,8 +82,8 @@ public class TicketServiceClient {
             HttpHeaders headers = createHeaders();
 
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("eventId", eventId);
             requestBody.put("userId", userId);
+            requestBody.put("eventId", eventId);
             requestBody.put("ticketType", ticketType);
             requestBody.put("quantity", quantity);
             requestBody.put("note", note);
