@@ -1,8 +1,10 @@
 package com.eventticket.organizer.controller;
 
+import com.eventticket.organizer.dto.BookingRequest;
 import com.eventticket.organizer.dto.EventDTO;
 import com.eventticket.organizer.dto.response.StatusUpdateResponse;
 import com.eventticket.organizer.dto.response.TicketStatisticsResponse;
+import com.eventticket.organizer.exception.ResourceNotFoundException;
 import com.eventticket.organizer.service.EventManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -38,6 +40,7 @@ public class EventManagementController {
             @RequestParam String newTime,
             @RequestParam @NotBlank String reason) {
         
+        EventDTO event = eventManagementService.getEventById(id);
         EventDTO postponedEvent = eventManagementService.postponeEvent(id, newDate, newTime, reason);
         
         EntityModel<EventDTO> resource = EntityModel.of(postponedEvent,
@@ -54,6 +57,7 @@ public class EventManagementController {
             @PathVariable Long id,
             @RequestParam @NotBlank String reason) {
         
+        EventDTO event = eventManagementService.getEventById(id);
         EventDTO cancelledEvent = eventManagementService.cancelEvent(id, reason);
         
         EntityModel<EventDTO> resource = EntityModel.of(cancelledEvent,
@@ -71,6 +75,7 @@ public class EventManagementController {
             @RequestParam @Positive Integer additionalCapacity,
             @RequestParam @NotBlank String reason) {
         
+        EventDTO event = eventManagementService.getEventById(id);
         EventDTO updatedEvent = eventManagementService.updateCapacity(id, additionalCapacity, reason);
         
         EntityModel<EventDTO> resource = EntityModel.of(updatedEvent,
@@ -101,11 +106,15 @@ public class EventManagementController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('ORGANIZER')")
     public ResponseEntity<Void> reserveOrganizerTickets(
             @PathVariable Long id,
-            @RequestParam Long organizerId,
-            @RequestParam String ticketType,
-            @RequestParam @Positive int quantity) {
-        
-        eventManagementService.reserveOrganizerTickets(id, organizerId, ticketType, quantity);
+            @RequestBody BookingRequest bookingRequest) {
+
+        eventManagementService.reserveOrganizerTickets(
+            id,
+            bookingRequest.getUserId(),
+            bookingRequest.getTicketType(),
+            bookingRequest.getQuantity()
+        );
         return ResponseEntity.ok().build();
     }
+
 }

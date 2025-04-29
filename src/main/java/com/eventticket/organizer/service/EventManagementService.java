@@ -151,18 +151,19 @@ public class EventManagementService {
         return ticketServiceClient.getTicketStatistics(id);
     }
 
+    public EventDTO getEventById(Long id) {
+        Event event = findEventById(id);
+        return eventMapper.toDto(event);
+    }
+
     @Transactional
     public void reserveOrganizerTickets(Long eventId, Long organizerId, String ticketType, int quantity) {
-        // Check if event exists
-        Event event = findEventById(eventId);
-        
-        // Call ticket service to reserve tickets
         boolean reserved = ticketServiceClient.reserveOrganizerTickets(eventId, organizerId, ticketType, quantity);
-        
+
         if (!reserved) {
             throw new BusinessException("Failed to reserve organizer tickets");
         }
-        
+
         log.info("Successfully reserved {} {} tickets for organizer {} for event {}", 
                 quantity, ticketType, organizerId, eventId);
     }
@@ -172,96 +173,40 @@ public class EventManagementService {
     public void updateEventStatuses() {
         LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
-        
+
         // Find all upcoming events
         List<Event> upcomingEvents = eventRepository.findByStatus(Event.EventStatus.UPCOMING);
-        
         for (Event event : upcomingEvents) {
-            // If event date is today, check if it's currently ongoing
             if (event.getDate().equals(today)) {
                 String[] timeParts = event.getTime().split(":");
                 int hour = Integer.parseInt(timeParts[0]);
                 int minute = Integer.parseInt(timeParts[1]);
-                
                 LocalDateTime eventStartTime = LocalDateTime.of(today.getYear(), today.getMonth(), today.getDayOfMonth(), hour, minute);
                 LocalDateTime eventEndTime = eventStartTime.plusMinutes(event.getDuration());
-                
+
                 if (now.isAfter(eventStartTime) && now.isBefore(eventEndTime)) {
-                    // Event is currently ongoing
                     event.setStatus(Event.EventStatus.ONGOING);
-                    
                     EventStatusUpdate statusUpdate = new EventStatusUpdate();
                     statusUpdate.setField("status");
                     statusUpdate.setOldValue(Event.EventStatus.UPCOMING.toString());
                     statusUpdate.setNewValue(Event.EventStatus.ONGOING.toString());
                     statusUpdate.setReason("Event started");
                     statusUpdate.setNotificationStatus(EventStatusUpdate.NotificationStatus.COMPLETED);
-                    
                     event.addStatusUpdate(statusUpdate);
-                    
                     eventRepository.save(event);
                     log.info("Updated event {} status to ONGOING", event.getId());
                 } else if (now.isAfter(eventEndTime)) {
-                    // Event is completed
                     event.setStatus(Event.EventStatus.COMPLETED);
-                    
                     EventStatusUpdate statusUpdate = new EventStatusUpdate();
                     statusUpdate.setField("status");
-                    statusUpdate.setOldValue(Event.EventStatus.UPCOMING.toString());
+                    statusUpdate.setOldValue(Event.EventStatus.ONGOING.toString());
                     statusUpdate.setNewValue(Event.EventStatus.COMPLETED.toString());
                     statusUpdate.setReason("Event completed");
                     statusUpdate.setNotificationStatus(EventStatusUpdate.NotificationStatus.COMPLETED);
-                    
                     event.addStatusUpdate(statusUpdate);
-                    
                     eventRepository.save(event);
                     log.info("Updated event {} status to COMPLETED", event.getId());
                 }
-            } else if (event.getDate().isBefore(today)) {
-                // Event date is in the past, mark as completed
-                event.setStatus(Event.EventStatus.COMPLETED);
-                
-                EventStatusUpdate statusUpdate = new EventStatusUpdate();
-                statusUpdate.setField("status");
-                statusUpdate.setOldValue(Event.EventStatus.UPCOMING.toString());
-                statusUpdate.setNewValue(Event.EventStatus.COMPLETED.toString());
-                statusUpdate.setReason("Event date passed");
-                statusUpdate.setNotificationStatus(EventStatusUpdate.NotificationStatus.COMPLETED);
-                
-                event.addStatusUpdate(statusUpdate);
-                
-                eventRepository.save(event);
-                log.info("Updated event {} status to COMPLETED", event.getId());
-            }
-        }
-        
-        // Find all ongoing events
-        List<Event> ongoingEvents = eventRepository.findByStatus(Event.EventStatus.ONGOING);
-        
-        for (Event event : ongoingEvents) {
-            String[] timeParts = event.getTime().split(":");
-            int hour = Integer.parseInt(timeParts[0]);
-            int minute = Integer.parseInt(timeParts[1]);
-            
-            LocalDateTime eventStartTime = LocalDateTime.of(event.getDate().getYear(), event.getDate().getMonth(), 
-                    event.getDate().getDayOfMonth(), hour, minute);
-            LocalDateTime eventEndTime = eventStartTime.plusMinutes(event.getDuration());
-            
-            if (now.isAfter(eventEndTime)) {
-                // Event is completed
-                event.setStatus(Event.EventStatus.COMPLETED);
-                
-                EventStatusUpdate statusUpdate = new EventStatusUpdate();
-                statusUpdate.setField("status");
-                statusUpdate.setOldValue(Event.EventStatus.ONGOING.toString());
-                statusUpdate.setNewValue(Event.EventStatus.COMPLETED.toString());
-                statusUpdate.setReason("Event completed");
-                statusUpdate.setNotificationStatus(EventStatusUpdate.NotificationStatus.COMPLETED);
-                
-                event.addStatusUpdate(statusUpdate);
-                
-                eventRepository.save(event);
-                log.info("Updated event {} status to COMPLETED", event.getId());
             }
         }
     }
@@ -270,14 +215,12 @@ public class EventManagementService {
     @Transactional
     public void processStatusUpdateNotifications() {
         List<Event> events = eventRepository.findAll();
-        
         for (Event event : events) {
             for (EventStatusUpdate update : event.getStatusUpdates()) {
                 if (update.getNotificationStatus() == EventStatusUpdate.NotificationStatus.PENDING) {
                     // Send notifications logic would go here
                     // This is just a placeholder
                     log.info("Processing notification for event {} status update: {}", event.getId(), update.getField());
-                    
                     // Update notification status
                     update.getNotifications().put("email", true);
                     update.getNotifications().put("sms", true);
@@ -286,7 +229,6 @@ public class EventManagementService {
                 }
             }
         }
-        
         eventRepository.saveAll(events);
     }
 

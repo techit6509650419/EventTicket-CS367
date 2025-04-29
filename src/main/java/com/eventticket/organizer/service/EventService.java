@@ -2,6 +2,7 @@ package com.eventticket.organizer.service;
 
 import com.eventticket.organizer.dto.EventCreateRequest;
 import com.eventticket.organizer.dto.EventDTO;
+import com.eventticket.organizer.dto.BookingRequest;
 import com.eventticket.organizer.dto.EventUpdateRequest;
 import com.eventticket.organizer.dto.TicketTypeDTO;
 import com.eventticket.organizer.dto.response.EventResponse;
@@ -116,19 +117,24 @@ public class EventService {
 
     @Transactional
     public EventDTO createEvent(EventCreateRequest request) {
+        // ตรวจสอบความถูกต้องของคำขอ
         validateEventCreateRequest(request);
 
+        // ตรวจสอบว่า Venue มีอยู่จริง
         Venue venue = venueRepository.findById(request.getVenueId())
                 .orElseThrow(() -> new ResourceNotFoundException("Venue not found with id: " + request.getVenueId()));
 
+        // ตรวจสอบว่า Organizer มีอยู่จริง
         Organizer organizer = organizerRepository.findById(request.getOrganizerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Organizer not found with id: " + request.getOrganizerId()));
 
+        // ตรวจสอบว่า Artist มีอยู่จริง
         Set<Artist> artists = request.getArtistIds().stream()
                 .map(id -> artistRepository.findById(id)
                         .orElseThrow(() -> new ResourceNotFoundException("Artist not found with id: " + id)))
                 .collect(Collectors.toSet());
 
+        // สร้าง Event ใหม่
         Event event = new Event();
         event.setName(request.getName());
         event.setDescription(request.getDescription());
@@ -139,9 +145,10 @@ public class EventService {
         event.setOrganizer(organizer);
         event.setCategory(request.getCategory());
         event.setArtists(artists);
-        event.setStatus(Event.EventStatus.DRAFT);
+        event.setStatus(Event.EventStatus.DRAFT); // ตั้งค่าเริ่มต้นเป็น DRAFT
         event.setImageUrl(request.getImageUrl());
 
+        // เพิ่ม Ticket Types
         for (TicketTypeDTO ticketTypeDTO : request.getTicketTypes()) {
             TicketType ticketType = new TicketType();
             ticketType.setType(ticketTypeDTO.getType());
@@ -155,7 +162,10 @@ public class EventService {
             event.addTicketType(ticketType);
         }
 
+        // บันทึก Event ลงฐานข้อมูล
         Event savedEvent = eventRepository.save(event);
+
+        // แปลง Event เป็น DTO และส่งกลับ
         return eventMapper.toDto(savedEvent);
     }
 

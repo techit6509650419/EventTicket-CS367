@@ -1,6 +1,7 @@
 package com.eventticket.organizer.service.client;
 
 import com.eventticket.organizer.dto.response.TicketStatisticsResponse;
+import com.eventticket.organizer.dto.response.BookingResponse;
 import com.eventticket.organizer.exception.ServiceCommunicationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -69,6 +70,33 @@ public class TicketServiceClient {
             return response.getStatusCode().is2xxSuccessful();
         } catch (RestClientException e) {
             log.error("Error reserving organizer tickets for eventId: {}", eventId, e);
+            throw new ServiceCommunicationException("Could not reserve organizer tickets: " + e.getMessage());
+        }
+    }
+
+    public BookingResponse reserveOrganizerTicketsAndGetResponse(String eventId, Long userId, String ticketType, Integer quantity, String note) {
+        try {
+            String url = ticketServiceUrl + "/api/bookings";
+            HttpHeaders headers = createHeaders();
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("eventId", eventId);
+            requestBody.put("userId", userId);
+            requestBody.put("ticketType", ticketType);
+            requestBody.put("quantity", quantity);
+            requestBody.put("note", note);
+
+            log.info("Booking request body: {}", requestBody);
+
+            ResponseEntity<BookingResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    new HttpEntity<>(requestBody, headers),
+                    BookingResponse.class);
+
+            return response.getBody();
+        } catch (RestClientException e) {
+            log.error("Error reserving organizer tickets (with response) for eventId: {}", eventId, e);
             throw new ServiceCommunicationException("Could not reserve organizer tickets: " + e.getMessage());
         }
     }
