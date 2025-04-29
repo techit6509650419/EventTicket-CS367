@@ -1,11 +1,14 @@
 package com.eventticket.organizer.controller;
 
 import com.eventticket.organizer.dto.BookingRequest;
+import com.eventticket.organizer.dto.response.BookingResponse; // ใช้ response package ที่ถูกต้อง
 import com.eventticket.organizer.dto.EventDTO;
 import com.eventticket.organizer.dto.response.StatusUpdateResponse;
 import com.eventticket.organizer.dto.response.TicketStatisticsResponse;
 import com.eventticket.organizer.exception.ResourceNotFoundException;
+import com.eventticket.organizer.exception.ServiceCommunicationException;
 import com.eventticket.organizer.service.EventManagementService;
+import com.eventticket.organizer.service.client.TicketServiceClient; // ใช้ client package ที่ถูกต้อง
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +33,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class EventManagementController {
 
     private final EventManagementService eventManagementService;
+    private final TicketServiceClient ticketServiceClient;
 
     @PutMapping("/{id}/postpone")
     @Operation(summary = "Postpone an event", security = @SecurityRequirement(name = "JWT"))
@@ -104,17 +108,26 @@ public class EventManagementController {
     @PostMapping("/{id}/reserve-organizer-tickets")
     @Operation(summary = "Reserve tickets for organizer team", security = @SecurityRequirement(name = "JWT"))
     @PreAuthorize("hasRole('ADMIN') or hasRole('ORGANIZER')")
-    public ResponseEntity<Void> reserveOrganizerTickets(
+    public ResponseEntity<BookingResponse> reserveOrganizerTicketsAndGetResponse(
             @PathVariable Long id,
             @RequestBody BookingRequest bookingRequest) {
 
-        eventManagementService.reserveOrganizerTickets(
-            id,
-            bookingRequest.getUserId(),
-            bookingRequest.getTicketType(),
-            bookingRequest.getQuantity()
+        // เรียก TicketServiceClient เพื่อจองตั๋ว
+        BookingResponse bookingResponse = ticketServiceClient.reserveOrganizerTicketsAndGetResponse(
+                id.toString(),
+                bookingRequest.getUserId(),
+                bookingRequest.getTicketType(),
+                bookingRequest.getQuantity(),
+                bookingRequest.getNote() != null ? bookingRequest.getNote() : "Reserved for organizer team"
         );
-        return ResponseEntity.ok().build();
+
+        // ตรวจสอบ response ที่ได้รับ
+        if (bookingResponse == null || bookingResponse.getBookingId() == null) {
+            throw new ServiceCommunicationException("Failed to reserve tickets. No booking ID returned.");
+        }
+
+        // ส่ง response กลับไปยัง client
+        return ResponseEntity.ok(bookingResponse);
     }
 
 }
