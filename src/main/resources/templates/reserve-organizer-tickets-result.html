@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Booking Result</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h1>Booking Result</h1>
+    <div th:if="${booking != null}">
+        <p><strong>Booking ID:</strong> <span th:text="${booking.bookingId}"></span></p>
+        <p><strong>Status:</strong> <span th:text="${booking.status}"></span></p>
+        <p><strong>Event ID:</strong> <span th:text="${booking.eventId}"></span></p>
+        <p><strong>Event Name:</strong> <span th:text="${booking.eventName}"></span></p>
+        <p><strong>User ID:</strong> <span th:text="${booking.userId}"></span></p>
+        <p><strong>Total Amount:</strong> <span th:text="${booking.totalAmount}"></span></p>
+        <p><strong>Created At:</strong> <span th:text="${booking.createdAt}"></span></p>
+        <div th:if="${booking.tickets != null}">
+            <h2>Tickets</h2>
+            <ul>
+                <li th:each="ticket : ${booking.tickets}">
+                    <span th:text="'Type: ' + ${ticket.type} + ', Section: ' + ${ticket.section} + ', Seat: ' + ${ticket.seatNumber} + ', Price: ' + ${ticket.price}"></span>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div th:if="${booking == null}">
+        <p>Booking failed or no response received.</p>
+    </div>
+    <a th:href="@{/web/reserve-organizer-tickets}">Back</a>
+</body>
+</html>

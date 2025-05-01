@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Ticket Statistics Result</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h1>Ticket Statistics Result</h1>
+    <div th:if="${stats != null}">
+        <p><strong>Event ID:</strong> <span th:text="${stats.eventId}"></span></p>
+        <p><strong>Event Name:</strong> <span th:text="${stats.eventName}"></span></p>
+        <p><strong>Total Tickets:</strong> <span th:text="${stats.totalTickets}"></span></p>
+        <p><strong>Available Tickets:</strong> <span th:text="${stats.availableTickets}"></span></p>
+        <p><strong>Reserved Tickets:</strong> <span th:text="${stats.reservedTickets}"></span></p>
+        <p><strong>Sold Tickets:</strong> <span th:text="${stats.soldTickets}"></span></p>
+        <p><strong>Checked-in Tickets:</strong> <span th:text="${stats.checkedInTickets}"></span></p>
+        <p><strong>Cancelled Tickets:</strong> <span th:text="${stats.cancelledTickets}"></span></p>
+        <p><strong>Total Revenue:</strong> <span th:text="${stats.totalRevenue}"></span></p>
+        <p><strong>Potential Revenue:</strong> <span th:text="${stats.potentialRevenue}"></span></p>
+        <div th:if="${stats.statisticsByType != null}">
+            <h2>Statistics By Type</h2>
+            <table border="1">
+                <tr>
+                    <th>Type</th>
+                    <th>Total</th>
+                    <th>Available</th>
+                    <th>Reserved</th>
+                    <th>Sold</th>
+                    <th>Checked In</th>
+                    <th>Cancelled</th>
+                    <th>Price</th>
+                    <th>Revenue</th>
+                    <th>Potential Revenue</th>
+                </tr>
+                <tr th:each="typeStat : ${stats.statisticsByType.values()}">
+                    <td th:text="${typeStat.type}"></td>
+                    <td th:text="${typeStat.total}"></td>
+                    <td th:text="${typeStat.available}"></td>
+                    <td th:text="${typeStat.reserved}"></td>
+                    <td th:text="${typeStat.sold}"></td>
+                    <td th:text="${typeStat.checkedIn}"></td>
+                    <td th:text="${typeStat.cancelled}"></td>
+                    <td th:text="${typeStat.price}"></td>
+                    <td th:text="${typeStat.revenue}"></td>
+                    <td th:text="${typeStat.potentialRevenue}"></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <a th:href="@{/web/ticket-statistics}">Back</a>
+</body>
+</html>

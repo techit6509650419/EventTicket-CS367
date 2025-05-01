@@ -41,13 +41,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors().and().csrf().disable()
+            .cors().and()
+            .csrf().disable()
             .headers().frameOptions().sameOrigin()
             .and()
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeRequests()
-                .anyRequest().permitAll()
+                .antMatchers("/web/**", "/css/**", "/js/**").permitAll()
+                .anyRequest().authenticated()
+            .and()
+            .formLogin().permitAll()
+            .and()
+            .logout().permitAll()
             .and()
             .authenticationProvider(autoGrantAuthenticationProvider);
 

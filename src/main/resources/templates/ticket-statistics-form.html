@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Ticket Statistics</title>
+</head>
+<body>
+    <h1>Ticket Statistics</h1>
+    <form method="post" th:action="@{/web/ticket-statistics}">
+        <label>Event ID: <input type="number" name="eventId" required></label>
+        <button type="submit">Get Statistics</button>
+    </form>
+</body>
+</html>
