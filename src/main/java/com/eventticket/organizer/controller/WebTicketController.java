@@ -16,6 +16,12 @@ public class WebTicketController {
 
     private final TicketServiceClient ticketServiceClient;
 
+    // Home
+    @GetMapping("/")
+    public String home() {
+        return "home";
+    }
+
     // Ticket Statistics
     @GetMapping("/web/ticket-statistics")
     public String ticketStatisticsForm() {
