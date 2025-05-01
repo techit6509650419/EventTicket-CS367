@@ -1,9 +1,15 @@
 package com.eventticket.organizer.controller;
 
+import com.eventticket.organizer.dto.BookingRequest;
+import com.eventticket.organizer.dto.response.BookingResponse; // ใช้ response package ที่ถูกต้อง
 import com.eventticket.organizer.dto.EventDTO;
 import com.eventticket.organizer.dto.response.StatusUpdateResponse;
 import com.eventticket.organizer.dto.response.TicketStatisticsResponse;
+import com.eventticket.organizer.dto.response.ChatbotResponse;
+import com.eventticket.organizer.exception.ResourceNotFoundException;
+import com.eventticket.organizer.exception.ServiceCommunicationException;
 import com.eventticket.organizer.service.EventManagementService;
+import com.eventticket.organizer.service.client.TicketServiceClient; // ใช้ client package ที่ถูกต้อง
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +34,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class EventManagementController {
 
     private final EventManagementService eventManagementService;
+    private final TicketServiceClient ticketServiceClient;
 
     @PutMapping("/{id}/postpone")
     @Operation(summary = "Postpone an event", security = @SecurityRequirement(name = "JWT"))
@@ -38,6 +45,7 @@ public class EventManagementController {
             @RequestParam String newTime,
             @RequestParam @NotBlank String reason) {
         
+        EventDTO event = eventManagementService.getEventById(id);
         EventDTO postponedEvent = eventManagementService.postponeEvent(id, newDate, newTime, reason);
         
         EntityModel<EventDTO> resource = EntityModel.of(postponedEvent,
@@ -54,6 +62,7 @@ public class EventManagementController {
             @PathVariable Long id,
             @RequestParam @NotBlank String reason) {
         
+        EventDTO event = eventManagementService.getEventById(id);
         EventDTO cancelledEvent = eventManagementService.cancelEvent(id, reason);
         
         EntityModel<EventDTO> resource = EntityModel.of(cancelledEvent,
@@ -71,6 +80,7 @@ public class EventManagementController {
             @RequestParam @Positive Integer additionalCapacity,
             @RequestParam @NotBlank String reason) {
         
+        EventDTO event = eventManagementService.getEventById(id);
         EventDTO updatedEvent = eventManagementService.updateCapacity(id, additionalCapacity, reason);
         
         EntityModel<EventDTO> resource = EntityModel.of(updatedEvent,
@@ -96,16 +106,26 @@ public class EventManagementController {
         return ResponseEntity.ok(statistics);
     }
 
-    @PostMapping("/{id}/reserve-organizer-tickets")
+    @PostMapping("/reserve-organizer-tickets")
     @Operation(summary = "Reserve tickets for organizer team", security = @SecurityRequirement(name = "JWT"))
     @PreAuthorize("hasRole('ADMIN') or hasRole('ORGANIZER')")
-    public ResponseEntity<Void> reserveOrganizerTickets(
-            @PathVariable Long id,
-            @RequestParam Long organizerId,
-            @RequestParam String ticketType,
-            @RequestParam @Positive int quantity) {
-        
-        eventManagementService.reserveOrganizerTickets(id, organizerId, ticketType, quantity);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<BookingResponse> reserveOrganizerTicketsAndGetResponse(
+            @RequestBody BookingRequest bookingRequest) {
+
+        // ส่ง eventId เป็น String
+        BookingResponse bookingResponse = ticketServiceClient.reserveOrganizerTicketsAndGetResponse(
+                bookingRequest.getEventId(),
+                bookingRequest.getUserId(),
+                bookingRequest.getTicketType(),
+                bookingRequest.getQuantity(),
+                bookingRequest.getNote()
+        );
+
+        if (bookingResponse == null || bookingResponse.getBookingId() == null) {
+            throw new ServiceCommunicationException("Failed to reserve tickets. No booking ID returned.");
+        }
+
+        return ResponseEntity.ok(bookingResponse);
     }
+
 }

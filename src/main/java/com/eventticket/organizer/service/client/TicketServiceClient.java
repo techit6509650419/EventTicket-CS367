@@ -1,6 +1,9 @@
 package com.eventticket.organizer.service.client;
 
 import com.eventticket.organizer.dto.response.TicketStatisticsResponse;
+import com.eventticket.organizer.dto.response.BookingResponse;
+import com.eventticket.organizer.dto.response.ChatbotResponse;
+import com.eventticket.organizer.dto.ChatbotFaqRequest;
 import com.eventticket.organizer.exception.ServiceCommunicationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -73,6 +76,33 @@ public class TicketServiceClient {
         }
     }
 
+    public BookingResponse reserveOrganizerTicketsAndGetResponse(String eventId, Long userId, String ticketType, Integer quantity, String note) {
+        try {
+            String url = ticketServiceUrl + "/api/bookings";
+            HttpHeaders headers = createHeaders();
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("userId", userId);
+            requestBody.put("eventId", eventId);
+            requestBody.put("ticketType", ticketType);
+            requestBody.put("quantity", quantity);
+            requestBody.put("note", note);
+
+            log.info("Booking request body: {}", requestBody);
+
+            ResponseEntity<BookingResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    new HttpEntity<>(requestBody, headers),
+                    BookingResponse.class);
+
+            return response.getBody();
+        } catch (RestClientException e) {
+            log.error("Error reserving organizer tickets (with response) for eventId: {}", eventId, e);
+            throw new ServiceCommunicationException("Could not reserve organizer tickets: " + e.getMessage());
+        }
+    }
+
     public List<Map<String, Object>> getFrequentlyAskedQuestions(Long eventId) {
         try {
             String url = ticketServiceUrl + "/api/chatbot/faq";
@@ -93,6 +123,25 @@ public class TicketServiceClient {
         } catch (RestClientException e) {
             log.error("Error retrieving FAQs for eventId: {}", eventId, e);
             throw new ServiceCommunicationException("Could not retrieve FAQs: " + e.getMessage());
+        }
+    }
+
+    public ChatbotResponse getFaqAnswer(ChatbotFaqRequest request) {
+        try {
+            String url = ticketServiceUrl + "/api/chatbot/faq";
+            HttpHeaders headers = createHeaders();
+
+            ResponseEntity<ChatbotResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    new HttpEntity<>(request, headers),
+                    ChatbotResponse.class
+            );
+
+            return response.getBody();
+        } catch (RestClientException e) {
+            log.error("Error calling chatbot service for FAQ", e);
+            throw new ServiceCommunicationException("Could not retrieve FAQ answers: " + e.getMessage());
         }
     }
 

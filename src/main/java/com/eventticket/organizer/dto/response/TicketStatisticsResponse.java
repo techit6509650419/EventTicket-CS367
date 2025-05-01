@@ -1,37 +1,33 @@
 package com.eventticket.organizer.dto.response;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.util.HashMap;
 import java.util.Map;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class TicketStatisticsResponse {
-    
-    private Long eventId;
-    
+    private String eventId;
     private String eventName;
-    
     private int totalTickets;
-    
-    private int soldTickets;
-    
     private int availableTickets;
-    
-    private Map<String, TypeStats> ticketTypeStats = new HashMap<>();
-    
+    private int reservedTickets;
+    private int soldTickets;
+    private int checkedInTickets;
+    private int cancelledTickets;
+    private double totalRevenue;
+    private double potentialRevenue;
+    private Map<String, TypeStatistics> statisticsByType;
+
     @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class TypeStats {
+    public static class TypeStatistics {
         private String type;
         private int total;
-        private int sold;
         private int available;
-        private double percentageSold;
+        private int reserved;
+        private int sold;
+        private int checkedIn;
+        private int cancelled;
+        private double price;
+        private double revenue;
+        private double potentialRevenue;
     }
 }
